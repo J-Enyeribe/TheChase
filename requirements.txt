@@ -1,0 +1,11 @@
+streamlit
+pandas
+plotly
+SQLAlchemy
+psycopg2-binary
+alembic
+python-dotenv
+bcrypt
+streamlit-authenticator
+extra-streamlit-components
+PyJWT
