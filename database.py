@@ -8,10 +8,14 @@ Streamlit Cloud: reads from .streamlit/secrets.toml
 """
 
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.pool import NullPool
 
+# Force load environment variables here to be absolutely safe
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Base class for all ORM models
@@ -23,7 +27,7 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 # Build connection URL
 # ---------------------------------------------------------------------------
-def _build_url() -> str:
+def _build_url() -> URL:
     """
     Builds the database URL from environment variables.
     Works for both local .env and Streamlit secrets (which are injected
@@ -32,7 +36,7 @@ def _build_url() -> str:
     user     = os.getenv("DB_USER")
     password = os.getenv("DB_PASSWORD")
     host     = os.getenv("DB_HOST")
-    port     = os.getenv("DB_PORT", "6543")
+    port     = os.getenv("DB_PORT", "5432")  # Switched default to 5432 (Session mode / Direct)
     dbname   = os.getenv("DB_NAME", "postgres")
 
     if not all([user, password, host]):
@@ -41,10 +45,15 @@ def _build_url() -> str:
             "Ensure DB_USER, DB_PASSWORD, DB_HOST are set in .env or Streamlit secrets."
         )
 
-    return (
-        f"postgresql+psycopg2://{user}:{password}"
-        f"@{host}:{port}/{dbname}"
-        f"?sslmode=require"
+    # URL.create safely encodes special characters in passwords (e.g., @, #, ?)
+    return URL.create(
+        drivername="postgresql+psycopg2",
+        username=user,
+        password=password,
+        host=host,
+        port=int(port),
+        database=dbname,
+        query={"sslmode": "require"}
     )
 
 
@@ -54,7 +63,7 @@ def _build_url() -> str:
 def get_engine():
     return create_engine(
         _build_url(),
-        poolclass=NullPool,   # required for Streamlit Cloud
+        poolclass=NullPool,   # required for Streamlit Cloud and Supabase Pooler
         echo=False,
     )
 

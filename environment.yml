@@ -22,6 +22,7 @@ dependencies:
   - aws-crt-cpp=0.27.3=h0a15bd7_2
   - aws-sdk-cpp=1.11.329=h554caeb_9
   - base58=2.1.1=pyhd8ed1ab_1
+  - bcrypt=5.0.0=py311hd2a4513_1
   - blinker=1.9.0=pyhff2d567_0
   - boto3=1.42.54=pyhd8ed1ab_0
   - botocore=1.42.54=pyhd8ed1ab_0
@@ -167,7 +168,6 @@ dependencies:
   - zstandard=0.25.0=py311h62e9434_1
   - zstd=1.5.7=h3eecb57_6
   - pip:
-      - bcrypt==5.0.0
       - cachetools==6.2.6
       - captcha==0.7.1
       - cryptography==46.0.5
