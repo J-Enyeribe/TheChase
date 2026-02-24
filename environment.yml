@@ -1,6 +1,7 @@
 name: TheChase
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.13
   - plotly
@@ -11,6 +12,7 @@ dependencies:
   - sqlalchemy
   - numpy
   - pip
+  - alembic
   - pip:
       - streamlit-authenticator
       - psycopg2
