@@ -28,7 +28,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 # Import your DeclarativeBase from database.py
-from database import Base
+from db.database import Base
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from database import get_session
-from models import User, UserRole
+from db.database import get_session
+from db.models import User, UserRole
 from modules.auth import hash_password
 
 

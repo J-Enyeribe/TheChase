@@ -113,6 +113,7 @@ dependencies:
   - openssl=3.6.1=hb6871ef_1
   - orc=2.0.1=hf43e91b_1
   - packaging=26.0=pyhcf101f3_0
+  - pandas-stubs=2.2.3.250308=py311hecd8cb5_0
   - patsy=1.0.2=pyhcf101f3_0
   - pillow=9.4.0=py311h5bae705_1
   - pip=26.0.1=pyhc872135_0
@@ -171,6 +172,7 @@ dependencies:
       - cachetools==6.2.6
       - captcha==0.7.1
       - cryptography==46.0.5
+      - dotenv==0.9.9
       - extra-streamlit-components==0.1.81
       - pandas==2.3.3
       - psycopg2-binary==2.9.11

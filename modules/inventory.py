@@ -1,23 +1,24 @@
 import streamlit as st
 import pandas as pd
-from database import get_session
-from models import Product, Category, Inventory
+import plotly.express as px
+from db.database import get_session
+from db.models import Product, Category, Inventory
 
 
 def show_inventory_page():
     st.header("📦 Inventory Management")
 
     # Organize the screen into tabs
-    tab1, tab2, tab3 = st.tabs(["Product List", "Add New Product", "Categories"])
+    tab1, tab2, tab3 = st.tabs(["Product Overview", "Add New Product", "Manage Categories"])
 
     # Grab a database session
     session_gen = get_session()
     session = next(session_gen)
 
     try:
-        # --- TAB 1: PRODUCT LIST ---
+        # --- TAB 1: PRODUCT LIST & VISUALS ---
         with tab1:
-            st.subheader("Current Products")
+            st.subheader("Current Inventory Dashboard")
             products = session.query(Product).all()
 
             if products:
@@ -33,47 +34,125 @@ def show_inventory_page():
                         "Stock": float(p.inventory.quantity_on_hand) if p.inventory else 0.0
                     })
                 df = pd.DataFrame(data)
-                st.dataframe(df, use_container_width=True, hide_index=True)
+
+                # Top Level Metrics
+                col1, col2, col3 = st.columns(3)
+                total_products = len(df)
+                total_stock = df["Stock"].sum()
+                low_stock_items = len(df[df["Stock"] < 10])
+
+                col1.metric("Total Unique Products", total_products)
+                col2.metric("Total Items in Stock", f"{total_stock:,.0f}")
+                col3.metric("Low Stock Alerts (<10)", low_stock_items, delta_color="inverse")
+
+                st.divider()
+
+                # Visualizations
+                st.write("#### Inventory Insights")
+                chart_col1, chart_col2 = st.columns(2)
+
+                with chart_col1:
+                    # Pie chart for Stock Distribution by Category
+                    cat_stock = df.groupby("Category")["Stock"].sum().reset_index()
+                    fig_pie = px.pie(
+                        cat_stock,
+                        values='Stock',
+                        names='Category',
+                        title='Stock Distribution by Category',
+                        hole=0.4
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+                with chart_col2:
+                    # Bar chart for Top Products by Stock
+                    top_stock = df.nlargest(10, 'Stock').sort_values('Stock', ascending=True)
+                    fig_bar = px.bar(
+                        top_stock,
+                        x='Stock',
+                        y='Name',
+                        orientation='h',
+                        title='Top 10 Products by Stock Volume',
+                        color='Category'
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                st.divider()
+
+                # Enhanced Dataframe view
+                st.write("#### Detailed Product List")
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Stock": st.column_config.ProgressColumn(
+                            "Stock Level",
+                            help="Current quantity on hand",
+                            format="%f",
+                            min_value=0,
+                            max_value=float(df['Stock'].max()) if not df.empty else 100,
+                        ),
+                        "Price (KSH)": st.column_config.NumberColumn(format="KSh %.2f"),
+                        "Price (UGX)": st.column_config.NumberColumn(format="UGX %.2f"),
+                    }
+                )
             else:
                 st.info("No products found. Head over to the 'Add New Product' tab to create some!")
 
         # --- TAB 3: CATEGORIES ---
-        # We process Categories before Products because Products depend on them!
+        # We process Categories before Products because Products depend on them
         with tab3:
             st.subheader("Manage Categories")
 
-            # Show existing categories
             categories = session.query(Category).all()
-            if categories:
-                cat_names = [c.name for c in categories]
-                st.write(f"**Existing Categories:** {', '.join(cat_names)}")
 
-            with st.form("add_category_form", clear_on_submit=True):
-                cat_name = st.text_input("New Category Name*")
-                cat_desc = st.text_area("Description")
-                submit_cat = st.form_submit_button("Add Category")
+            col_cat_list, col_cat_form = st.columns([1.5, 1])
 
-                if submit_cat:
-                    if cat_name.strip():
-                        # Check for duplicates
-                        existing = session.query(Category).filter_by(name=cat_name.strip()).first()
-                        if existing:
-                            st.error(f"Category '{cat_name}' already exists.")
+            with col_cat_list:
+                st.write("**Existing Categories**")
+                if categories:
+                    # Create a richer view of categories including product counts
+                    cat_data = []
+                    for c in categories:
+                        prod_count = session.query(Product).filter(Product.category_id == c.id).count()
+                        cat_data.append({
+                            "Category Name": c.name,
+                            "Description": c.description or "-",
+                            "Products Linked": prod_count
+                        })
+                    st.dataframe(pd.DataFrame(cat_data), use_container_width=True, hide_index=True)
+                else:
+                    st.info("No categories exist yet.")
+
+            with col_cat_form:
+                st.write("**Add a New Category**")
+                with st.form("add_category_form", clear_on_submit=True):
+                    cat_name = st.text_input("Category Name*", placeholder="e.g., Whiskey, Soft Drinks")
+                    cat_desc = st.text_area("Description (Optional)")
+                    submit_cat = st.form_submit_button("Add Category", use_container_width=True)
+
+                    if submit_cat:
+                        if cat_name.strip():
+                            # Case-insensitive duplicate check
+                            existing = session.query(Category).filter(Category.name.ilike(cat_name.strip())).first()
+                            if existing:
+                                st.error(f"Category '{existing.name}' already exists.")
+                            else:
+                                new_cat = Category(name=cat_name.strip(), description=cat_desc.strip())
+                                session.add(new_cat)
+                                session.commit()
+                                st.success(f"Category '{cat_name}' added!")
+                                st.rerun()
                         else:
-                            new_cat = Category(name=cat_name.strip(), description=cat_desc.strip())
-                            session.add(new_cat)
-                            session.commit()
-                            st.success(f"Category '{cat_name}' added!")
-                            st.rerun()
-                    else:
-                        st.error("Category name is required.")
+                            st.error("Category name is required.")
 
         # --- TAB 2: ADD PRODUCT ---
         with tab2:
             st.subheader("Add New Product")
 
             if not categories:
-                st.warning("⚠️ You need to add at least one Category (in the Categories tab) before adding a Product.")
+                st.warning(
+                    "⚠️ You need to add at least one Category (in the Manage Categories tab) before adding a Product.")
             else:
                 with st.form("add_product_form", clear_on_submit=True):
                     col1, col2 = st.columns(2)

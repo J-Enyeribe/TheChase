@@ -26,8 +26,7 @@ if config.config_file_name is not None:
 # ── Add project root to path so models/database can be imported ──────────────
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from database import Base  # noqa: F401
-import models               # noqa: F401
+from db.database import Base  # noqa: F401
 
 target_metadata = Base.metadata
 

@@ -1,18 +1,16 @@
-import os
 from dotenv import load_dotenv
 
 # Load environment variables from the .env file BEFORE importing database modules
 load_dotenv()
 
 import streamlit as st
-from sqlalchemy import text
 
 # Import database session tools and models
-from database import get_session, check_connection
-from models import User
+from db.database import get_session, check_connection
+from db.models import User
 from modules.inventory import show_inventory_page
 from modules.settings import show_settings_page
-from modules.auth import verify_password, hash_password
+from modules.auth import verify_password
 
 # --- Page Configuration ---
 st.set_page_config(
