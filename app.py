@@ -10,7 +10,7 @@ from db.database import get_session, check_connection
 from db.models import User
 from modules.inventory import show_inventory_page
 from modules.settings import show_settings_page
-from modules.auth import verify_password
+from modules.auth import verify_passwordy
 
 # --- Page Configuration ---
 st.set_page_config(
