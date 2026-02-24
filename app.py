@@ -1,7 +1,5 @@
 from dotenv import load_dotenv
 
-from modules.pos import show_pos_page
-
 # Load environment variables from the .env file BEFORE importing database modules
 load_dotenv()
 
@@ -127,7 +125,7 @@ else:
         st.write("Welcome to the main dashboard. High-level metrics will go here.")
 
     elif selection == "POS Till":
-        show_pos_page()
+        st.write("This will be the Point of Sale interface where cashiers/waiters ring up items.")
 
     elif selection == "Active Orders":
         st.write("This will show the Kanban board of orders (Placed -> Served -> Cleared).")
