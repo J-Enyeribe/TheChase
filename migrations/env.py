@@ -27,6 +27,7 @@ if config.config_file_name is not None:
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from db.database import Base  # noqa: F401
+import db.models               # noqa: F401 — registers all ORM classes with Base
 
 target_metadata = Base.metadata
 
