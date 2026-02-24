@@ -13,4 +13,6 @@ dependencies:
   - pip
   - pip:
       - streamlit-authenticator
+      - psycopg2
+      - python-dotenv
 prefix: /usr/local/Caskroom/miniconda/base/envs/TheChase
