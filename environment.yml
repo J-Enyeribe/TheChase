@@ -128,6 +128,7 @@ dependencies:
   - pysocks=1.7.1=pyha55dd90_7
   - python=3.11.14=h74c2667_3_cpython
   - python-dateutil=2.9.0.post0=pyhe01879c_2
+  - python-dotenv=1.2.1=pyhcf101f3_0
   - python_abi=3.11=8_cp311
   - pyyaml=6.0.3=py311h53ebfaf_1
   - qhull=2020.2=h3c5361c_5
@@ -172,12 +173,10 @@ dependencies:
       - cachetools==6.2.6
       - captcha==0.7.1
       - cryptography==46.0.5
-      - dotenv==0.9.9
       - extra-streamlit-components==0.1.81
       - pandas==2.3.3
       - psycopg2-binary==2.9.11
       - pyjwt==2.11.0
-      - python-dotenv==1.2.1
       - pytz==2025.2
       - streamlit==1.54.0
       - streamlit-authenticator==0.4.2
