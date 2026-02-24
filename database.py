@@ -1,11 +1,13 @@
 """
 database.py
 -----------
-Manages the SQLAlchemy engine and session for a Supabase (PostgreSQL) backend.
-Connection credentials are loaded from Streamlit secrets (secrets.toml).
+Database connection for TheChase POS system.
+
+Local dev:  reads from .env file
+Streamlit Cloud: reads from .streamlit/secrets.toml
 """
 
-import streamlit as st
+import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -19,78 +21,56 @@ class Base(DeclarativeBase):
 
 
 # ---------------------------------------------------------------------------
-# Engine & Session Factory
+# Build connection URL
 # ---------------------------------------------------------------------------
-def get_engine():
+def _build_url() -> str:
     """
-    Build a SQLAlchemy engine from Streamlit secrets.
-
-    Expected secrets.toml structure:
-    ─────────────────────────────────
-    [supabase]
-    host     = "db.xxxxxxxxxxxx.supabase.co"
-    port     = 5432
-    database = "postgres"
-    user     = "postgres"
-    password  = "your-password"
-
-    Or provide a full connection URL:
-    [supabase]
-    url = "postgresql://postgres:<password>@db.xxxx.supabase.co:5432/postgres"
-    ─────────────────────────────────
-
-    NullPool is used to avoid connection issues on Streamlit Community Cloud,
-    where the process may be recycled between requests.
+    Builds the database URL from environment variables.
+    Works for both local .env and Streamlit secrets (which are injected
+    as environment variables automatically on Streamlit Cloud).
     """
-    try:
-        # Prefer a full URL if provided
-        if "url" in st.secrets["supabase"]:
-            db_url = st.secrets["supabase"]["url"]
-        else:
-            cfg = st.secrets["supabase"]
-            db_url = (
-                f"postgresql+psycopg2://{cfg['user']}:{cfg['password']}"
-                f"@{cfg['host']}:{cfg['port']}/{cfg['database']}"
-            )
-    except KeyError as e:
+    user     = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host     = os.getenv("DB_HOST")
+    port     = os.getenv("DB_PORT", "6543")
+    dbname   = os.getenv("DB_NAME", "postgres")
+
+    if not all([user, password, host]):
         raise RuntimeError(
-            f"Missing Supabase secret: {e}. "
-            "Check your .streamlit/secrets.toml file."
+            "Missing database credentials. "
+            "Ensure DB_USER, DB_PASSWORD, DB_HOST are set in .env or Streamlit secrets."
         )
 
-    engine = create_engine(
-        db_url,
-        poolclass=NullPool,      # Safe for serverless / Streamlit Cloud
-        echo=False,              # Set True to log SQL during development
-        connect_args={
-            "sslmode": "require",   # Supabase requires SSL
-            "connect_timeout": 10,
-        },
+    return (
+        f"postgresql+psycopg2://{user}:{password}"
+        f"@{host}:{port}/{dbname}"
+        f"?sslmode=require"
     )
-    return engine
 
 
 # ---------------------------------------------------------------------------
-# Session helper — use as a context manager in your app
+# Engine
 # ---------------------------------------------------------------------------
-_engine = None
-_SessionLocal = None
+def get_engine():
+    return create_engine(
+        _build_url(),
+        poolclass=NullPool,   # required for Streamlit Cloud
+        echo=False,
+    )
 
 
+# ---------------------------------------------------------------------------
+# Session
+# ---------------------------------------------------------------------------
 def get_session():
     """
-    Returns a SQLAlchemy Session bound to the Supabase engine.
-    Usage:
+    Use as a context manager:
         with get_session() as session:
-            results = session.query(Product).all()
+            session.query(Product).all()
     """
-    global _engine, _SessionLocal
-
-    if _engine is None:
-        _engine = get_engine()
-        _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
-
-    session = _SessionLocal()
+    engine = get_engine()
+    Session = sessionmaker(bind=engine, expire_on_commit=False)
+    session = Session()
     try:
         yield session
         session.commit()
@@ -101,23 +81,15 @@ def get_session():
         session.close()
 
 
-def init_db():
-    """
-    Create all tables in the database (safe to call multiple times).
-    Typically called once on app startup.
-    """
-    from models import Base  # noqa: F401 — import triggers model registration
-    engine = get_engine()
-    Base.metadata.create_all(bind=engine)
-
-
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
 def check_connection() -> bool:
-    """Ping the database and return True if reachable."""
     try:
-        engine = get_engine()
-        with engine.connect() as conn:
+        with get_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
+        print("✅ Database connection successful!")
         return True
     except Exception as e:
-        st.error(f"Database connection failed: {e}")
+        print(f"❌ Database connection failed: {e}")
         return False
