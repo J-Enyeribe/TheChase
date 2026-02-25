@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 
-from modules.pos import show_pos_page
+
 
 # Load environment variables from the .env file BEFORE importing database modules
 load_dotenv()
@@ -10,6 +10,8 @@ import streamlit as st
 # Import database session tools and models
 from db.database import get_session, check_connection
 from db.models import User
+from modules.pos import show_pos_page
+from modules .analytics import show_analytics_page
 from modules.inventory import show_inventory_page
 from modules.settings import show_settings_page
 from modules.auth import verify_password
@@ -112,7 +114,7 @@ else:
         # Navigation
         st.subheader("Navigation")
         # You can expand this menu based on the user's role
-        menu_options = ["Dashboard", "POS Till", "Active Orders", "Inventory", "Settings"]
+        menu_options = ["Dashboard", "POS", "Sales Analytics", "Inventory Manager", "User Settings"]
 
         if user_info["role"] in ["waiter", "cashier"]:
             # Restrict menu for lower roles
@@ -126,14 +128,14 @@ else:
     if selection == "Dashboard":
         st.write("Welcome to the main dashboard. High-level metrics will go here.")
 
-    elif selection == "POS Till":
+    elif selection == "POS":
         show_pos_page()
 
-    elif selection == "Active Orders":
-        st.write("This will show the Kanban board of orders (Placed -> Served -> Cleared).")
+    elif selection == "Sales Analytics":
+        show_analytics_page()
 
-    elif selection == "Inventory":
+    elif selection == "Inventory Manager":
         show_inventory_page()
 
-    elif selection == "Settings":
+    elif selection == "User Settings":
         show_settings_page()
